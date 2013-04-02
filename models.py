@@ -62,15 +62,11 @@ def register_handler(sender, **kwargs):
     # add reward points history for new user register event
     try:
         if kwargs['created'] == True:
-            add_history_to_db(kwargs['instance'], 'register', datetime.datetime.now())
-
-            # add user points, new user has 10 points
-            add_points_to_user(kwargs['instance'], 'register')
+            accessDB(kwargs['instance'], 'register', datetime.datetime.now())
     except Exception, e:
         msg = "Points.models.register_handler.Exception %s" % str(e)
         logger.debug(msg)
-    finally:
-        return
+
 post_save.connect(register_handler, sender=User)
 
 
@@ -88,18 +84,11 @@ def upload_handler(sender, **kwargs):
         if (kwargs['created'] == True) and \
                 (not file_item.path.startswith(repr(file_item.user.id)[0:-1] + u'/作业')) and \
                 (file_item.file_type != 10):
-        #if not file_item.path.startswith(repr(file_item.user.id) + '/作业'):
-        #if kwargs['created'] == True:
-            # add reward points history for user uploading file
-            add_history_to_db(file_item.user, 'uploadfile', datetime.datetime.now())
-
-            # add points of the user
-            add_points_to_user(file_item.user, 'uploadfile')
+            accessDB(file_item.user, 'uploadfile', datetime.datetime.now())
     except Exception, e:
         msg = "Points.models.upload_handler.Exception %s" % str(e)
         logger.debug(msg)
-    finally:
-        return
+
 post_save.connect(upload_handler, sender=File)
 
 
@@ -116,21 +105,17 @@ def send_task_handler(sender, **kwargs):
         return
     try:
         if (kwargs['created'] == True) and (task.sender == task.receiver):
-            add_history_to_db(task.sender, 'sendtask', datetime.datetime.now())
-
-            # add points of the teacher
-            add_points_to_user(task.sender, 'sendtask')
+            accessDB(task.sender, 'sendtask', datetime.datetime.now())
     except Exception, e:
         msg = "Points.models.send_task_handler.Exception %s" % str(e)
         logger.debug(msg)
-    finally:
-        return
+
 post_save.connect(send_task_handler, sender = Task)
 
 
 # Handle the signals from student commit task
 def commit_task_handler(sender, **kwargs):
-    '''commit_task_handler(sender, **kwargs)
+    '''commit_task_handler(sender, **kwargs) -> bool
 
     Processing the signal of student committing task event.
     '''
@@ -140,15 +125,11 @@ def commit_task_handler(sender, **kwargs):
         return
     try:
         if kwargs['created'] == True:
-            add_history_to_db(commit.sender, 'committask', datetime.datetime.now())
-
-            #add points of the student
-            add_points_to_user(commit.sender, 'committask')
+            accessDB(commit.sender, 'committask', datetime.datetime.now())
     except Exception, e:
         msg = "Points.models.commit_task_handler.Exception %s" % str(e)
         logger.debug(msg)
-    finally:
-        return
+
 post_save.connect(commit_task_handler, sender=Commit)
 
 
@@ -164,25 +145,21 @@ def first_login_in_handler(sender, **kwargs):
         return
     try:
         if (user.last_login is None) or (user.last_login.date() != kwargs['login_time'].date()):
-            add_history_to_db(user, 'firstlogin', kwargs['login_time'])
-
-            add_points_to_user(user, 'firstlogin')
+            accessDB(user, 'firstlogin', kwargs['login_time'])
     except Exception, e:
         msg = "Points.models.first_login_in_handler.Exception %s" %str(e)
         logger.debug(msg)
-    finally:
-        return
+
 login_in_news.connect(first_login_in_handler, sender = User)
 
 
-def add_history_to_db(user, operation_name, time_of_operation):
-    '''add_history_to_db(user, operation_name, time_of_operation)
+def add_history_to_db(user, operation, time_of_operation):
+    '''add_history_to_db(user, operation, time_of_operation)
 
     Add one record of user's operation to db.
     '''
 
     new_history_item = History_points()
-    operation = Operation_points.objects.get(operation_name = operation_name)
     new_history_item.operation_id = operation
     new_history_item.reward_points = operation.points
     new_history_item.user_id = user
@@ -190,15 +167,28 @@ def add_history_to_db(user, operation_name, time_of_operation):
     new_history_item.save()
 
 
-def add_points_to_user(user, operation_name):
-    '''add_points_to_user(user, operation_name)
+def add_points_to_user(user, operation):
+    '''add_points_to_user(user, operation)
 
     Add points to user based on user's specific operation.
     '''
-    operation = Operation_points.objects.get(operation_name = operation_name)
+    #operation = Operation_points.objects.get(operation_name = operation_name)
     try:
         user_points_item = User_points.objects.get(user_id = user)
     except ObjectDoesNotExist:
         user_points_item = User_points.objects.create(user_id = user, points_of_user = 0L)
     user_points_item.points_of_user += operation.points
     user_points_item.save()
+
+def accessDB(user, operation_name, time_of_operation):
+    '''accessDB(instance, str, datetime)
+
+    Main function  used to accessing database.
+    '''
+    try:
+        operation = Operation_points.objects.get(operation_name = operation_name)
+    except ObjectDoesNotExist, e:
+        msg = "Points.models.Operation_history.Exception %s" %str(e)
+        logger.debug(msg)
+    add_history_to_db(user, operation, time_of_operation)
+    add_points_to_user(user, operation)
