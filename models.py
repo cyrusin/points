@@ -8,6 +8,7 @@ from Task.models import Task
 from Task.models import Commit
 from signals import login_in_news
 from roxedu.settings import logger
+import traceback
 
 #import signals
 import datetime
@@ -64,6 +65,8 @@ def register_handler(sender, **kwargs):
         if kwargs['created'] == True:
             accessDB(kwargs['instance'], 'register', datetime.datetime.now())
     except Exception, e:
+        msg2 = traceback.format_exc()
+        logger.debug(msg2)
         msg = "Points.models.register_handler.Exception %s" % str(e)
         logger.debug(msg)
 
@@ -86,6 +89,8 @@ def upload_handler(sender, **kwargs):
                 (file_item.file_type != 10):
             accessDB(file_item.user, 'uploadfile', datetime.datetime.now())
     except Exception, e:
+        msg2 = traceback.format_exc()
+        logger.debug(msg2)
         msg = "Points.models.upload_handler.Exception %s" % str(e)
         logger.debug(msg)
 
@@ -107,6 +112,8 @@ def send_task_handler(sender, **kwargs):
         if (kwargs['created'] == True) and (task.sender == task.receiver):
             accessDB(task.sender, 'sendtask', datetime.datetime.now())
     except Exception, e:
+        msg2 = traceback.format_exc()
+        logger.debug(msg2)
         msg = "Points.models.send_task_handler.Exception %s" % str(e)
         logger.debug(msg)
 
@@ -127,6 +134,8 @@ def commit_task_handler(sender, **kwargs):
         if kwargs['created'] == True:
             accessDB(commit.sender, 'committask', datetime.datetime.now())
     except Exception, e:
+        msg2 = traceback.format_exc()
+        logger.debug(msg2)
         msg = "Points.models.commit_task_handler.Exception %s" % str(e)
         logger.debug(msg)
 
@@ -147,6 +156,8 @@ def first_login_in_handler(sender, **kwargs):
         if (user.last_login is None) or (user.last_login.date() != kwargs['login_time'].date()):
             accessDB(user, 'firstlogin', kwargs['login_time'])
     except Exception, e:
+        msg2 = traceback.format_exc()
+        logger.debug(msg2)
         msg = "Points.models.first_login_in_handler.Exception %s" %str(e)
         logger.debug(msg)
 
@@ -188,6 +199,8 @@ def accessDB(user, operation_name, time_of_operation):
     try:
         operation = Operation_points.objects.get(operation_name = operation_name)
     except ObjectDoesNotExist, e:
+        msg2 = traceback.format_exc()
+        logger.debug(msg2)
         msg = "Points.models.Operation_history.Exception %s" %str(e)
         logger.debug(msg)
     add_history_to_db(user, operation, time_of_operation)
