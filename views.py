@@ -5,6 +5,7 @@ from django.http import HttpResponse
 from utils.CheckRequestUser import checkRequestUserValidate
 from roxedu.settings import logger
 import traceback
+from django.http import Http404
 
 def current_points(request):
     try:
@@ -30,6 +31,19 @@ def points_history(request):
         msg2 = traceback.format_exc()
         logger.debug(msg2)
 
+def get_all_info(request):
+    try:
+        web_client, user_validate, user = checkRequestUserValidate(request, logger)
+        if user:
+            user_item = User_points.objects.get(user_id = user)
+            points = user_item.points_of_user
+            history_items = History_points.objects.filter(user_id = user)
+            return render_to_response("Points/points_info.html", {'user': user, 'points': points, 'history_items': history_items})
+
+    except Exception, e:
+        msg2 = traceback.format_exc()
+        logger.debug(msg2)
+        raise Http404
 
 
 

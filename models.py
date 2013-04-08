@@ -6,7 +6,7 @@ from User.models import User
 from File.models import File
 from Task.models import Task
 from Task.models import Commit
-from signals import login_in_news
+from signals import login_in_news, upload_news
 from roxedu.settings import logger
 import traceback
 
@@ -70,7 +70,7 @@ def register_handler(sender, **kwargs):
         msg = "Points.models.register_handler.Exception %s" % str(e)
         logger.debug(msg)
 
-post_save.connect(register_handler, sender=User)
+post_save.connect(register_handler, sender = User)
 
 
 # Handle the signals from user upload file
@@ -94,7 +94,7 @@ def upload_handler(sender, **kwargs):
         msg = "Points.models.upload_handler.Exception %s" % str(e)
         logger.debug(msg)
 
-post_save.connect(upload_handler, sender=File)
+upload_news.connect(upload_handler, sender = File)
 
 
 # Handle the signals from teacher send new task
@@ -139,7 +139,7 @@ def commit_task_handler(sender, **kwargs):
         msg = "Points.models.commit_task_handler.Exception %s" % str(e)
         logger.debug(msg)
 
-post_save.connect(commit_task_handler, sender=Commit)
+post_save.connect(commit_task_handler, sender = Commit)
 
 
 # Handle the signals from user first login in everyday
@@ -187,7 +187,7 @@ def add_points_to_user(user, operation):
     try:
         user_points_item = User_points.objects.get(user_id = user)
     except ObjectDoesNotExist:
-        user_points_item = User_points.objects.create(user_id = user, points_of_user = 0L)
+        user_points_item = User_points.objects.create(user_id = user, points_of_user = 10L)
     user_points_item.points_of_user += operation.points
     user_points_item.save()
 
