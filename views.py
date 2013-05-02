@@ -16,7 +16,8 @@ def current_points(request):
         if user:
             user_item = User_points.objects.get(user_id = user)
             points = user_item.points_of_user
-            return render_to_response("Points/bonus_info.html", {'user': user, 'points': points})
+            return render_to_response("Points/bonus_info.html", \
+                                      {'user': user, 'points': points})
 
     except Exception, e:
         msg2 = traceback.format_exc()
@@ -28,7 +29,8 @@ def points_history(request):
         web_client, user_validate, user = checkRequestUserValidate(request, logger)
         if user:
             history_items = History_points.objects.filter(user_id = user)
-            return render_to_response("Points/bonus_history.html", {'user': user, 'history_items': history_items})
+            return render_to_response("Points/bonus_history.html", \
+                                      {'user': user, 'history_items': history_items})
 
     except Exception, e:
         msg2 = traceback.format_exc()
@@ -41,7 +43,8 @@ def get_all_info(request):
             user_item = User_points.objects.get(user_id = user)
             points = user_item.points_of_user
             history_items = History_points.objects.filter(user_id = user)
-            return render_to_response("Points/bonus_history.html", {'user': user, 'points': points, 'history_items': history_items})
+            return render_to_response("Points/bonus_history.html", \
+                                      {'user': user, 'points': points, 'history_items': history_items})
 
     except Exception, e:
         msg2 = traceback.format_exc()
@@ -73,7 +76,8 @@ def get_some_bonus_record(request):
                 history_items_part = history_items[0:8]
             else:
                 history_items_part = history_items
-            return render_to_response("Points/bonus_info.html", {'points': points, 'record': history_items_part})
+            return render_to_response("Points/bonus_info.html", \
+                                      {'points': points, 'record': history_items_part})
     except Exception, e:
         msg2 = traceback.format_exc()
         logger.debug(msg2)
@@ -147,7 +151,7 @@ def bonus_record(request):
                 page = 1
         except ValueError:
             page = 1
-        page_size = 8
+        page_size = 12
         after_range_num = 5
         before_range_num = 6
         page_range = []

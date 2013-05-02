@@ -20,6 +20,8 @@ class Operation_points(models.Model):
     '''
     operation_name = models.CharField(max_length=50)
     points = models.IntegerField()
+    in_use = models.BooleanField(default=True)
+
 
     def __unicode__(self):
         return self.operation_name
@@ -186,10 +188,11 @@ def add_points_to_user(user, operation):
     #operation = Operation_points.objects.get(operation_name = operation_name)
     try:
         user_points_item = User_points.objects.get(user_id = user)
+        user_points_item.points_of_user += operation.points
+        user_points_item.save()
     except ObjectDoesNotExist:
         user_points_item = User_points.objects.create(user_id = user, points_of_user = 10L)
-    user_points_item.points_of_user += operation.points
-    user_points_item.save()
+
 
 def accessDB(user, operation_name, time_of_operation):
     '''accessDB(instance, str, datetime)
@@ -198,10 +201,12 @@ def accessDB(user, operation_name, time_of_operation):
     '''
     try:
         operation = Operation_points.objects.get(operation_name = operation_name)
+        if (operation.in_use == False): #operation is no longer in use.
+            return
+        add_history_to_db(user, operation, time_of_operation)
+        add_points_to_user(user, operation)
     except ObjectDoesNotExist, e:
         msg2 = traceback.format_exc()
         logger.debug(msg2)
         msg = "Points.models.Operation_history.Exception %s" %str(e)
         logger.debug(msg)
-    add_history_to_db(user, operation, time_of_operation)
-    add_points_to_user(user, operation)
