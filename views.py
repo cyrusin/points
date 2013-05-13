@@ -9,6 +9,8 @@ from django.http import QueryDict, HttpResponse, HttpResponseRedirect, Http404
 from utils.common import utilResponse
 from django.core.paginator import Paginator, EmptyPage, InvalidPage, PageNotAnInteger
 from django.views.decorators.csrf import csrf_protect
+from django.core.exceptions import ObjectDoesNotExist
+
 
 def current_points(request):
     try:
@@ -22,6 +24,7 @@ def current_points(request):
     except Exception, e:
         msg2 = traceback.format_exc()
         logger.debug(msg2)
+        raise Http404
 
 
 def points_history(request):
@@ -35,6 +38,7 @@ def points_history(request):
     except Exception, e:
         msg2 = traceback.format_exc()
         logger.debug(msg2)
+
 
 def get_all_info(request):
     try:
@@ -51,13 +55,23 @@ def get_all_info(request):
         logger.debug(msg2)
         raise Http404
 
+
 def get_bonus_rule(request):
     try:
         web_client, user_validate, user = checkRequestUserValidate(request, logger)
         if user:
-            user_item = User_points.objects.get(user_id = user)
-            points = user_item.points_of_user
-            return render_to_response("Points/bonus_rule.html", {'points': points})
+            try:
+                user_item = User_points.objects.get(user_id = user)
+            except ObjectDoesNotExist:
+                points = 0
+            else:
+                points = user_item.points_of_user
+
+            operation_items = Operation_points.objects.all()
+            operation_names = [item.operation_name for item in operation_items if item.in_use]
+
+            return render_to_response("Points/bonus_rule.html", \
+                                      {'points': points, 'operation': operation_names})
 
     except Exception, e:
         msg2 = traceback.format_exc()
@@ -66,12 +80,25 @@ def get_bonus_rule(request):
 
 
 def get_some_bonus_record(request):
+    result = {
+        "Flage": False,
+        "msg": None,
+        "info": None
+
+    }
     try:
         web_client, user_validate, user = checkRequestUserValidate(request, logger)
         if user:
-            user_item = User_points.objects.get(user_id = user)
+            try:
+                user_item = User_points.objects.get(user_id = user)
+            except ObjectDoesNotExist:
+                return render_to_response("Points/bonus_info.html", \
+                                            {'points': 0, 'record': []})
             points = user_item.points_of_user
             history_items = History_points.objects.filter(user_id = user)
+            if not history_items:
+                return render_to_response('Points/bonus_info.html', \
+                                            {'points': points, 'record': []})
             if len(history_items) > 8:
                 history_items_part = history_items[0:8]
             else:
@@ -81,55 +108,9 @@ def get_some_bonus_record(request):
     except Exception, e:
         msg2 = traceback.format_exc()
         logger.debug(msg2)
-
-def get_all_bonus_record(request):
-    page_offset = 1
-    try:
-        web_client, user_validate, user = checkRequestUserValidate(request, logger)
-        if user:
-            user_item = User_points.objects.get(user_id = user)
-            points = user_item.points_of_user
-            history_items = History_points.objects.filter(user_id = user)
-            if len(history_items) % 8 == 0:
-                page_num = range(len(history_items) / 8)
-            else:
-                page_num = range((len(history_items) / 8) + 1)
-            return render_to_response("Points/bonus_all_history.html", \
-                                      {'points': points, \
-                                       'record':history_items[0:8], \
-                                       'page_num': page_num, \
-                                       'page_offset': page_offset})
-
-    except Exception, e:
-        msg2 = traceback.format_exc()
-        logger.debug(msg2)
+        return utilResponse(result,status=500)
 
 
-def get_bonus_record(request, page_offset):
-    try:
-        page_offset = int(page_offset)
-    except ValueError:
-        raise Http404
-
-    try:
-        web_client, user_validate, user = checkRequestUserValidate(request, logger)
-        if user:
-            user_item = User_points.objects.get(user_id = user)
-            points = user_item.points_of_user
-            history_items = History_points.objects.filter(user_id = user)
-            if len(history_items) % 8 == 0:
-                page_num = range(len(history_items) / 8)
-            else:
-                page_num = range((len(history_items) / 8) + 1)
-            return render_to_response("Points/bonus_all_history.html", \
-                                      {'points': points, \
-                                       'record':history_items[8*(page_offset - 1):(8*(page_offset-1)+8)], \
-                                       'page_num': page_num, \
-                                       'page_offset': page_offset})
-
-    except Exception, e:
-        msg2 = traceback.format_exc()
-        logger.debug(msg2)
 @csrf_protect
 def bonus_record(request):
     result = {
@@ -156,7 +137,11 @@ def bonus_record(request):
         before_range_num = 6
         page_range = []
         if user:
-            user_item = User_points.objects.get(user_id = user)
+            try:
+                user_item = User_points.objects.get(user_id = user)
+            except ObjectDoesNotExist:
+                return render_to_response('Points/bonus_info.html', \
+                                          {'points': 0, 'record': []})
             points = user_item.points_of_user
             history_items = History_points.objects.filter(user_id = user)
             paginator = Paginator(history_items, page_size)
@@ -176,3 +161,4 @@ def bonus_record(request):
     except Exception, e:
         msg2 = traceback.format_exc()
         logger.debug(msg2)
+        return utilResponse(result,status=500)
