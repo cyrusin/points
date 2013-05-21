@@ -2,7 +2,8 @@
 from django.db import models
 from django.db.models.signals import post_save
 from django.core.exceptions import ObjectDoesNotExist
-from User.models import User
+from User.models import User, Teacher, Student
+from School.models import SchoolInfo, ClassInfo
 from File.models import File
 from Task.models import Task
 from Task.models import Commit
@@ -210,3 +211,67 @@ def accessDB(user, operation_name, time_of_operation):
         # logger.debug(msg2)
         msg = "Points.models.Operation_history.Exception %s" %str(e)
         # logger.debug(msg)
+
+
+def getAllUserPoints():
+    '''getUserPoints()
+
+     Used to get all user-points info from the database.
+    '''
+    try:
+        all_item = User_points.objects.all()
+    except Exception, e:
+        msg2 = traceback.format_exc()
+        logger.debug(msg2)
+        msg = "Points.models.getUserPoints.Exception %s" % str(e)
+        logger.debug(e)
+        all_item = []
+    return all_item
+
+
+def getUserPointsBySchool(schoolName = None):
+    '''getUserPoints(string)
+
+    Used to get  bonus info of some special users of some school.
+    '''
+    try:
+        all_item = []
+        if schoolName:
+            schoolInfo = SchoolInfo.objects.get(name = schoolName)
+            if schoolInfo:
+                all_user = User.objects.filter(school = schoolInfo)
+                all_item = [User_points.objects.get(user_id = item) \
+                            for item in all_user if item]
+    except Exception, e:
+        msg2 = traceback.format_exc()
+        logger.debug(msg2)
+        msg = 'Points.models.getUserPointsBySchool.Exception %s' % str(e)
+
+    return all_item
+
+
+def getUserPointsByClass(className = None, schoolName = None):
+    '''getUserPointsByClass(string, string)
+
+    Used to get bonus info of special users of some class.
+    '''
+    try:
+        all_item = []
+        if schoolName:
+            schoolInfo = SchoolInfo.objects.get(name = schoolName)
+            if schoolInfo:
+                classInfo = ClassInfo.objects.get(name = className, school = schoolInfo)
+                if classInfo:
+                    teachers = Teacher.objects.filter(classInfo = classInfo)
+                    students = Student.objects.filter(classInfo = classInfo)
+                    for t in teachers:
+                        all_item.append(User_points.objects.get(user_id = t.teacher))
+                    for s in students:
+                        all_item.append(User_points.objects.get(user_id = s.student))
+
+    except Exception, e:
+        msg2 = traceback.format_exc()
+        logger.debug(msg2)
+        msg = 'Points.models.getUserPointsByClass.Exception %s' % str(e)
+
+    return all_item
